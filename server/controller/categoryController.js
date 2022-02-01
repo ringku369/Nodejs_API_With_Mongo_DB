@@ -1,70 +1,47 @@
-const User = require('../model/userModel');
-const CryptoJS = require("crypto-js");
+const Category = require('../model/categoryModel');
 const dotenv = require('dotenv');
-const jwt = require('jsonwebtoken');
 dotenv.config({});
-
 const data = {}
-
-
 
 data.show = async (req, res) => {
 
     const id = req.query.id;
     if (id) {
 
-        const usserData = await User.findOne({
+        const categoryData = await Category.findOne({
             _id: id,
             status: true
         });
         try {
             const {
                 ...others
-            } = usserData._doc;
+            } = categoryData._doc;
             return res.status(200).json(others);
-        } catch (error) {
+        } catch (err) {
             return res.status(500).json({
-                error: err.message || "Error Occurred while retriving user information"
+                error: err.message || "Error Occurred while retriving category information"
             })
         }
 
     } else {
-        // User.find({status:true })
-        //     .then(user => {
-        //         return res.status(200).json(user);
-        //     })
-        //     .catch(err => {
-        //         return res.status(500).json({ error : err.message || "Error Occurred while retriving user information" })
-        //     })
-
-        const userData = await User.aggregate([
-
-            {
-                $match: {
-                    'status': true
-                }
-            },
-            {
+        const categoryData = await Category.aggregate([{
                 $lookup: {
-                    from: 'categories',
-                    localField: '_id', // Main tabel foreign key
-                    foreignField: 'user_id', // Secondary table primary key
-                    pipeline: [{
-                        $match: {
-                            status: true
-                        }
-                    }],
-                    as: 'catdatas'
+                    from: 'users',
+                    localField: 'user_id', // Main tabel foreign key
+                    foreignField: '_id', // Secondary table primary key
+                    as: 'user'
                 }
             },
 
             //{$project : {'users.name':true,'users._id':true,title:true}},
-            //{$unwind : '$users' }
+            {
+                $unwind: '$user'
+            }
 
-        ]).limit(5);
+        ]);
         try {
-            return res.status(200).json(userData);
-            //const { ...others} = userData._doc;
+            return res.status(200).json(categoryData);
+            //const { ...others} = categoryData._doc;
 
         } catch (error) {
             return res.status(500).json({
@@ -77,24 +54,22 @@ data.show = async (req, res) => {
 
 data.one = (req, res) => {
     const id = req.params.id;
-    User.findOne({
+    Category.findOne({
             _id: id,
             status: true
         }, {
-            name: true,
-            email: true,
+            title: true,
+            user_id: true,
             updatedAt: true,
             createdAt: true,
-            status: true,
-            gender: true,
-            isAdmin: true
+            status: true
         })
-        .then(user => {
-            return res.status(200).json(user);
+        .then(category => {
+            return res.status(200).json(category);
         })
         .catch(err => {
             return res.status(500).json({
-                error: err.message || "Error Occurred while retriving user information"
+                error: err.message || "Error Occurred while retriving category information"
             })
         })
 }
@@ -106,26 +81,20 @@ data.create = async (req, res) => {
             'error': 'Data to cteate can not be empty'
         }]);
     }
-    const checkUser = await User.findOne({
-        'email': req.body.email
-    });
+    const checkCategory = await Category.findOne({
+        'title': req.body.title
+    }).count();
     try {
-        if (!checkUser) {
-
-            // Encrypt
-            const encPassword = CryptoJS.AES.encrypt(req.body.password, process.env.SKEY).toString();
-
-            const newUser = new User({
-                name: req.body.name,
-                email: req.body.email,
-                password: encPassword,
+        if (checkCategory == 0) {
+            const newCategory = new Category({
+                title: req.body.title,
+                user_id: req.body.user_id
             });
-            const saveUser = await newUser.save();
-
+            const saveCategory = await newCategory.save();
             const {
                 password,
                 ...others
-            } = saveUser._doc;
+            } = saveCategory._doc;
             return res.status(201).json(others);
 
         } else {
@@ -136,7 +105,7 @@ data.create = async (req, res) => {
 
     } catch (err) {
         return res.status(500).json({
-            error: err.message || "Error create user information"
+            error: err.message || "Error create category information"
         });
     }
 }
@@ -151,10 +120,10 @@ data.update = async (req, res) => {
     }
     const id = req.params.id;
     if (id == 'all') {
-        if (req.body.email) return res.status(400).json({
-            error: 'Email filed is not allowed'
+        if (req.body.title) return res.status(400).json({
+            error: 'Title filed is not allowed'
         });
-        const result = await User.updateMany({
+        const result = await Category.updateMany({
             status: true
         }, {
             $set: req.body
@@ -163,17 +132,17 @@ data.update = async (req, res) => {
             error: 'no data found'
         });
         return res.status(200).json({
-            success: "All user has been updated successfully!"
+            success: "All category has been updated successfully!"
         });
 
     } else {
-        User.findByIdAndUpdate(id, req.body, {
+        Category.findByIdAndUpdate(id, req.body, {
                 useFindAndModify: false
             })
             .then(data => {
                 if (!data) {
                     return res.status(404).json({
-                        error: `Cannot Update user with ${id}. Maybe user not found!`
+                        error: `Cannot Update category with ${id}. Maybe category not found!`
                     })
                 } else {
                     return res.json(data)
@@ -181,7 +150,7 @@ data.update = async (req, res) => {
             })
             .catch(err => {
                 return res.status(500).json({
-                    error: "Error Update user information"
+                    error: "Error Update category information"
                 })
             })
     }
@@ -191,18 +160,18 @@ data.update = async (req, res) => {
 data.delete = async (req, res) => {
     const id = req.params.id;
     if (id == 'all') {
-        const result = await User.deleteMany({
+        const result = await Category.deleteMany({
             status: true
         });
         if (result.deletedCount == 0) return res.status(400).json({
             error: 'no data found'
         });
         return res.status(200).json({
-            success: "All user has been deleted successfully!"
+            success: "All category has been deleted successfully!"
         });
 
     } else {
-        User.findByIdAndDelete(id)
+        Category.findByIdAndDelete(id)
             .then(data => {
                 if (!data) {
                     return res.status(404).json({
@@ -210,13 +179,13 @@ data.delete = async (req, res) => {
                     });
                 } else {
                     return res.status(200).json({
-                        success: "User has been deleted successfully!"
+                        success: "Category has been deleted successfully!"
                     });
                 }
             })
             .catch(err => {
                 return res.status(500).json({
-                    error: "Could not delete User with id=" + id
+                    error: "Could not delete Category with id=" + id
                 });
             });
     }
