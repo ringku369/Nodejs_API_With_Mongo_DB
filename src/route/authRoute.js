@@ -15,6 +15,51 @@ const {
 
 // user crud route
 
+
+route.post('/registration', async (req, res) => {
+
+    if (!req.body) {
+        return res.status(400).json([{
+            'error': 'Data to cteate can not be empty'
+        }]);
+    }
+    const count = await User.count({
+        'email': req.body.email
+    });
+    try {
+        if (count == 0) {
+
+            // Encrypt
+            const encPassword = CryptoJS.AES.encrypt(req.body.password, process.env.SKEY).toString();
+
+            const newUser = new User({
+                name: req.body.name,
+                email: req.body.email,
+                password: encPassword,
+                userType: req.body.userType
+            });
+            const saveUser = await newUser.save();
+
+            const {
+                password,
+                ...others
+            } = saveUser._doc;
+            return res.status(201).json(others);
+
+        } else {
+            return res.status(404).json([{
+                'error': 'Duplicate entry is not allowed'
+            }]);
+        }
+
+    } catch (err) {
+        return res.status(500).json({
+            error: err.message || "Error create user information"
+        });
+    }
+});
+
+
 route.post('/login', async (req, res) => {
 
     if (!req.body) {
@@ -29,7 +74,7 @@ route.post('/login', async (req, res) => {
         name: true,
         email: true,
         password: true,
-        isAdmin: true
+        userType: true
     });
     if (!checkUser) return res.status(404).json([{
         'error': 'email or password does not match'
@@ -44,7 +89,7 @@ route.post('/login', async (req, res) => {
 
     const accessToken = jwt.sign({
             id: checkUser._id,
-            isAdmin: checkUser.isAdmin
+            userType: checkUser.userType
         },
         process.env.SKEY, {
             expiresIn: '365d'

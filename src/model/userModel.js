@@ -26,6 +26,11 @@ var schema = new mongoose.Schema({
     isAdmin: {
         type: Boolean,
         default: false
+    },
+    userType: {
+        type: String,
+        enum : ['User','Admin','SuperAdmin'],
+        default: 'User'
     }
 }, {
     timestamps: true

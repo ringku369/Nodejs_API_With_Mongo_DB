@@ -11,7 +11,7 @@ dotenv.config({
 const PORT = process.env.PORT || 9000; // load port from env file
 
 //load database connection
-const connectionDB = require('./server/database/connection');
+const connectionDB = require('./src/database/connection');
 connectionDB(); // mongodb load
 
 
@@ -27,13 +27,14 @@ app.use(route); // load route
 // load auth middleware
 const {
   jwtAuth,
+  jwtAuthUser,
   jwtAuthAdmin,
-  jwtAuthUser
-} = require('./server/middleware/auth');
+  jwtAuthSuperAdmin
+} = require('./src/middleware/auth');
 //load route file
-const authRoute = require('./server/route/authRoute');
-const userRoute = require('./server/route/userRoute');
-const categoryRoute = require('./server/route/categoryRoute');
+const authRoute = require('./src/route/authRoute');
+const userRoute = require('./src/route/userRoute');
+const categoryRoute = require('./src/route/categoryRoute');
 
 //load parent route
 app.use('/', (req, res) => {
@@ -42,7 +43,7 @@ app.use('/', (req, res) => {
 
 route.use('/auth', authRoute);
 route.use('/category', jwtAuth, categoryRoute);
-route.use('/user', userRoute);
+route.use('/user', jwtAuthAdmin, userRoute);
 
 
 

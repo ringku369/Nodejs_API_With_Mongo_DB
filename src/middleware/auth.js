@@ -2,7 +2,7 @@ const dotenv = require('dotenv');
 const jwt = require("jsonwebtoken");
 dotenv.config({});
 
-
+const USERTYPE = ['User','Admin','SuperAdmin'];
 
 const jwtAuth = async (req, res, next) => {
     const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
@@ -23,9 +23,9 @@ const jwtAuth = async (req, res, next) => {
 };
 
 
-const jwtAuthAdmin = async (req, res, next) => {
+const jwtAuthSuperAdmin = async (req, res, next) => {
     jwtAuth(req, res, () => {
-        if (req.user.isAdmin) {
+        if (req.user.userType == USERTYPE[2]) {
             console.log(req.user);
             next();
         } else {
@@ -36,9 +36,23 @@ const jwtAuthAdmin = async (req, res, next) => {
     })
 };
 
+const jwtAuthAdmin = async (req, res, next) => {
+    jwtAuth(req, res, () => {
+        if ((req.user.userType == USERTYPE[2]) || (req.user.userType == USERTYPE[1])) {
+            console.log(req.user);
+            next();
+        } else {
+            return res.status(403).json({
+                error: "You are unauthorized"
+            });
+        }
+    })
+};
+
+
 const jwtAuthUser = async (req, res, next) => {
     jwtAuth(req, res, () => {
-        if (req.user.isAdmin == false) {
+        if ((req.user.userType == USERTYPE[2]) || (req.user.userType == USERTYPE[1]) || (req.user.userType == USERTYPE[0])) {
             console.log(req.user);
             next();
         } else {
@@ -66,6 +80,7 @@ var get_token = (headerToken) => {
 
 module.exports = {
     jwtAuth,
+    jwtAuthUser,
     jwtAuthAdmin,
-    jwtAuthUser
+    jwtAuthSuperAdmin
 };
