@@ -36,14 +36,17 @@ const authRoute = require('./src/route/authRoute');
 const userRoute = require('./src/route/userRoute');
 const categoryRoute = require('./src/route/categoryRoute');
 
+
+
 //load parent route
 app.use('/', (req, res) => {
   res.send(`This is project root route`);
 });
 
+
 route.use('/auth', authRoute);
 route.use('/category', jwtAuth, categoryRoute);
-route.use('/user', jwtAuthAdmin, userRoute);
+route.use('/user', jwtAuthSuperAdmin, userRoute);
 
 
 
