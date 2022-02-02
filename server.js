@@ -26,7 +26,6 @@ app.use(route); // load route
 
 // load auth middleware
 const {
-  jwtAuth,
   jwtAuthUser,
   jwtAuthAdmin,
   jwtAuthSuperAdmin
@@ -45,7 +44,7 @@ app.use('/', (req, res) => {
 
 
 route.use('/auth', authRoute);
-route.use('/category', jwtAuth, categoryRoute);
+route.use('/category', categoryRoute);
 route.use('/user', jwtAuthSuperAdmin, userRoute);
 
 

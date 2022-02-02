@@ -7,10 +7,18 @@ const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
 dotenv.config({});
 
+// redis
+const redis = require('redis');
+const client = redis.createClient({ url: process.env.REDIS_URL });
+(async () => { await client.connect();})();
+// redis
+
+
 const {
-    jwtAuth,
+    get_token,
     jwtAuthAdmin,
-    jwtAuthUser
+    jwtAuthUser,
+    jwtAuthSuperAdmin
 } = require('../middleware/auth');
 
 // user crud route
@@ -95,8 +103,7 @@ route.post('/login', async (req, res) => {
             expiresIn: '365d'
         }
     );
-
-
+    const setToken = await client.set(checkUser._id,accessToken);
     const {
         password,
         ...others
@@ -108,13 +115,16 @@ route.post('/login', async (req, res) => {
 });
 
 
-route.post('/logout', jwtAuth, (req, res) => {
+route.post('/logout', jwtAuthSuperAdmin, async (req, res, next) => {
+    const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
+    let token = await get_token(headerToken);
+    const decoded = jwt.verify(token, process.env.SKEY);
+    const _id = decoded.id;
+    const delToken = await client.del(_id);
+
     return res.status(200).json({
-        'success': 'This process has been done successfully!'
+        'success': 'Logout successfully done!'
     });
 });
-
-
-
 
 module.exports = route;

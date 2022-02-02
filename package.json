@@ -21,8 +21,8 @@
     "dotenv": "^14.2.0",
     "express": "^4.17.2",
     "jsonwebtoken": "^8.5.1",
+    "jwt-redis": "^6.0.0",
     "mongoose": "^6.1.7",
-    "node-cache": "^5.1.2",
     "redis": "^4.0.3"
   },
   "devDependencies": {

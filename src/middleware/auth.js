@@ -2,6 +2,12 @@ const dotenv = require('dotenv');
 const jwt = require("jsonwebtoken");
 dotenv.config({});
 
+// redis
+const redis = require('redis');
+const client = redis.createClient({ url: process.env.REDIS_URL });
+(async () => { await client.connect();})();
+// redis
+
 const USERTYPE = ['User','Admin','SuperAdmin'];
 
 const jwtAuth = async (req, res, next) => {
@@ -24,7 +30,14 @@ const jwtAuth = async (req, res, next) => {
 
 
 const jwtAuthSuperAdmin = async (req, res, next) => {
-    jwtAuth(req, res, () => {
+    jwtAuth(req, res, async () => {
+        const getToken = await client.get(req.user.id);
+        if(!getToken){
+            return res.status(403).json({
+                error: "You are unauthorized"
+            });
+        }
+
         if (req.user.userType == USERTYPE[2]) {
             console.log(req.user);
             next();
@@ -37,7 +50,13 @@ const jwtAuthSuperAdmin = async (req, res, next) => {
 };
 
 const jwtAuthAdmin = async (req, res, next) => {
-    jwtAuth(req, res, () => {
+    jwtAuth(req, res, async () => {
+        const getToken = await client.get(req.user.id);
+        if(!getToken){
+            return res.status(403).json({
+                error: "You are unauthorized"
+            });
+        }
         if ((req.user.userType == USERTYPE[2]) || (req.user.userType == USERTYPE[1])) {
             console.log(req.user);
             next();
@@ -51,7 +70,15 @@ const jwtAuthAdmin = async (req, res, next) => {
 
 
 const jwtAuthUser = async (req, res, next) => {
-    jwtAuth(req, res, () => {
+    
+    jwtAuth(req, res, async () => {
+        const getToken = await client.get(req.user.id);
+        if(!getToken){
+            return res.status(403).json({
+                error: "You are unauthorized"
+            });
+        }
+
         if ((req.user.userType == USERTYPE[2]) || (req.user.userType == USERTYPE[1]) || (req.user.userType == USERTYPE[0])) {
             console.log(req.user);
             next();
@@ -62,6 +89,23 @@ const jwtAuthUser = async (req, res, next) => {
         }
     })
 };
+
+const tokenCheck = async (req, res, next) => {
+    const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
+    let token = await get_token(headerToken);
+    const decoded = jwt.verify(token, process.env.SKEY);
+    const _id = decoded.id;
+    const getToken = await client.get(_id);
+
+    if (getToken) {
+        next();
+    } else {
+        return res.status(403).json({
+            error: "You are unauthorized"
+        });
+    }
+};
+
 
 var get_token = (headerToken) => {
     let bearerToken = headerToken;
@@ -79,8 +123,9 @@ var get_token = (headerToken) => {
 }
 
 module.exports = {
-    jwtAuth,
+    get_token,
     jwtAuthUser,
     jwtAuthAdmin,
     jwtAuthSuperAdmin
+    
 };

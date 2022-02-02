@@ -2,9 +2,9 @@ const express = require('express');
 const route = express.Router();
 const categoryController = require('../controller/categoryController');
 const {
-    jwtAuth,
     jwtAuthAdmin,
-    jwtAuthUser
+    jwtAuthUser,
+    jwtAuthSuperAdmin
 } = require('../middleware/auth');
 
 
