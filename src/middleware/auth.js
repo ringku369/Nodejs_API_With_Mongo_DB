@@ -17,9 +17,20 @@ const jwtAuth = async (req, res, next) => {
     });
 
     let token = await get_token(headerToken);
+    
     try {
         const decoded = jwt.verify(token, process.env.SKEY);
         req.user = decoded;
+
+        // cache validation
+            const getToken = await client.get(decoded.id);
+            if(!getToken || getToken != token){
+                return res.status(403).json({
+                    error: "You are unauthorized"
+                });
+            }
+        // cache validation
+        
     } catch (err) {
         return res.status(401).send({
             error: "Invalid Token"
@@ -31,15 +42,8 @@ const jwtAuth = async (req, res, next) => {
 
 const jwtAuthSuperAdmin = async (req, res, next) => {
     jwtAuth(req, res, async () => {
-        const getToken = await client.get(req.user.id);
-        if(!getToken){
-            return res.status(403).json({
-                error: "You are unauthorized"
-            });
-        }
-
         if (req.user.userType == USERTYPE[2]) {
-            console.log(req.user);
+            //console.log(req.user);
             next();
         } else {
             return res.status(403).json({
@@ -51,14 +55,8 @@ const jwtAuthSuperAdmin = async (req, res, next) => {
 
 const jwtAuthAdmin = async (req, res, next) => {
     jwtAuth(req, res, async () => {
-        const getToken = await client.get(req.user.id);
-        if(!getToken){
-            return res.status(403).json({
-                error: "You are unauthorized"
-            });
-        }
         if ((req.user.userType == USERTYPE[2]) || (req.user.userType == USERTYPE[1])) {
-            console.log(req.user);
+            //console.log(req.user);
             next();
         } else {
             return res.status(403).json({
@@ -72,15 +70,8 @@ const jwtAuthAdmin = async (req, res, next) => {
 const jwtAuthUser = async (req, res, next) => {
     
     jwtAuth(req, res, async () => {
-        const getToken = await client.get(req.user.id);
-        if(!getToken){
-            return res.status(403).json({
-                error: "You are unauthorized"
-            });
-        }
-
         if ((req.user.userType == USERTYPE[2]) || (req.user.userType == USERTYPE[1]) || (req.user.userType == USERTYPE[0])) {
-            console.log(req.user);
+            //console.log(req.user);
             next();
         } else {
             return res.status(403).json({

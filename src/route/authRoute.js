@@ -103,7 +103,7 @@ route.post('/login', async (req, res) => {
             expiresIn: '365d'
         }
     );
-    const setToken = await client.set(checkUser._id,accessToken);
+    const setToken = await client.SETEX(checkUser._id,60,accessToken);
     const {
         password,
         ...others
