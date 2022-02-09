@@ -1,20 +1,24 @@
+const dotenv = require('dotenv');
+dotenv.config({});
 const express = require('express');
 const route = express.Router();
 
 const User = require('../model/userModel');
 const CryptoJS = require("crypto-js");
-const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
-dotenv.config({});
 
-// redis
-const redis = require('redis');
-const client = redis.createClient({ url: process.env.REDIS_URL });
-(async () => { await client.connect();})();
-// redis
+
+if (process.env.IS_REDIS == 1){
+    // redis
+    const redis = require('redis');
+    const client = redis.createClient({ url: process.env.REDIS_URL });
+    (async () => { await client.connect();})();
+    // redis
+}
 
 
 const {
+    jwtAuth,
     get_token,
     jwtAuthAdmin,
     jwtAuthUser,
@@ -103,7 +107,11 @@ route.post('/login', async (req, res) => {
             expiresIn: '365d'
         }
     );
-    const setToken = await client.SETEX(checkUser._id,60,accessToken);
+    //redis code
+    if (process.env.IS_REDIS == 1) {
+        const setToken = await client.SETEX(checkUser._id,60,accessToken);
+    }
+    //redis code
     const {
         password,
         ...others
@@ -115,13 +123,16 @@ route.post('/login', async (req, res) => {
 });
 
 
-route.post('/logout', jwtAuthSuperAdmin, async (req, res, next) => {
-    const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
-    let token = await get_token(headerToken);
-    const decoded = jwt.verify(token, process.env.SKEY);
-    const _id = decoded.id;
-    const delToken = await client.del(_id);
-
+route.post('/logout', jwtAuth, async (req, res, next) => {
+    if (process.env.IS_REDIS == 1) {
+        // redis cache delete
+        const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
+        let token = await get_token(headerToken);
+        const decoded = jwt.verify(token, process.env.SKEY);
+        const _id = decoded.id;
+        const delToken = await client.del(_id);
+        // redis cache delete
+    }
     return res.status(200).json({
         'success': 'Logout successfully done!'
     });

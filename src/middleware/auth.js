@@ -1,12 +1,15 @@
 const dotenv = require('dotenv');
-const jwt = require("jsonwebtoken");
 dotenv.config({});
+const jwt = require("jsonwebtoken");
 
-// redis
-const redis = require('redis');
-const client = redis.createClient({ url: process.env.REDIS_URL });
-(async () => { await client.connect();})();
-// redis
+if (process.env.IS_REDIS == 1) {
+    // redis
+    const redis = require('redis');
+    const client = redis.createClient({ url: process.env.REDIS_URL });
+    (async () => { await client.connect();})();
+    // redis
+}
+
 
 const USERTYPE = ['User','Admin','SuperAdmin'];
 
@@ -21,15 +24,16 @@ const jwtAuth = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.SKEY);
         req.user = decoded;
-
-        // cache validation
+        if (process.env.IS_REDIS == 1) {
+            // redis cache validation
             const getToken = await client.get(decoded.id);
             if(!getToken || getToken != token){
                 return res.status(403).json({
                     error: "You are unauthorized"
                 });
             }
-        // cache validation
+            // redis cache validation
+        }
         
     } catch (err) {
         return res.status(401).send({
@@ -81,21 +85,21 @@ const jwtAuthUser = async (req, res, next) => {
     })
 };
 
-const tokenCheck = async (req, res, next) => {
-    const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
-    let token = await get_token(headerToken);
-    const decoded = jwt.verify(token, process.env.SKEY);
-    const _id = decoded.id;
-    const getToken = await client.get(_id);
+// const tokenCheck = async (req, res, next) => {
+//     const headerToken = req.body.token || req.query.token || req.headers["authorization"] || req.headers["token"];
+//     let token = await get_token(headerToken);
+//     const decoded = jwt.verify(token, process.env.SKEY);
+//     const _id = decoded.id;
+//     const getToken = await client.get(_id);
 
-    if (getToken) {
-        next();
-    } else {
-        return res.status(403).json({
-            error: "You are unauthorized"
-        });
-    }
-};
+//     if (getToken) {
+//         next();
+//     } else {
+//         return res.status(403).json({
+//             error: "You are unauthorized"
+//         });
+//     }
+// };
 
 
 var get_token = (headerToken) => {
@@ -115,6 +119,7 @@ var get_token = (headerToken) => {
 
 module.exports = {
     get_token,
+    jwtAuth,
     jwtAuthUser,
     jwtAuthAdmin,
     jwtAuthSuperAdmin
