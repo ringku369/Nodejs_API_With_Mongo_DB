@@ -43,4 +43,4 @@ who has contributed to this project!
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) to contribute.
 
-If you found any bugs, Please report it using [mail](ringku369@gmail.com)
+If you have any query please email me to [ringku369@gmail.com]
