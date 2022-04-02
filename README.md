@@ -14,8 +14,12 @@ git clone this-url
 cd project-root
 ```
 
-##### install [nodejs](https://nodejs.org/en/download/) dependencies of this project by running
+##### please install [nodejs](https://nodejs.org/en/download/) and [mongodb](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-windows/) dependencies of this project by running
 
 ```sh
 npm install
+```
+
+```sh
+npm start
 ```
